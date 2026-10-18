@@ -23,7 +23,7 @@ function orderView(){
  const o=E.currentOrder(state),stats=create("div",undefined,"order-grid");
  for(const [key,val] of [["製造品",o.name],["受注数量",o.units+"個"],["1個の売上",yen(o.unitPrice)],["納期の目安",o.deadline+"分"],["不良の可能性",o.riskHint]])appendPair(stats,key,val);
  root.append(stats);
- root.append(create("p","不良品の正確な数は検査後に分かります。全数検査でも誤検出・見逃しが起こり得ます。","muted"));
+ root.append(create("p","抜き取り検査では、不良品の総数は分かりません。全数検査でも見逃しが起こり得ます。","muted"));
 }
 function outcomeView(){
  const root=$("outcome");root.replaceChildren();
