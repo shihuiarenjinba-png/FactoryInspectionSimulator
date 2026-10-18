@@ -1,0 +1,12 @@
+{
+  "name": "factory-inspection-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline manufacturing quality inspection management game (development)",
+  "scripts": {
+    "test": "node --test tests/*.test.cjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
