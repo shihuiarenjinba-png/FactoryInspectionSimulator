@@ -63,3 +63,17 @@ footer{margin:24px 0}
 .comparison th,.comparison td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 .comparison th{color:#d5e7d4}
 .comparison .selected-row{background:#355451;font-weight:750}
+
+/* Game decision schematic; driven by the engine estimate, not mock values. */
+.line-viz{background:linear-gradient(145deg,#28484c,#1b363c);border:1px solid #78918d;
+ border-radius:13px;padding:15px 16px;margin:17px 0 12px}
+.line-viz h3{font-size:17px;margin:0 0 12px;color:#f0d6a2}
+.line-viz-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.line-meter{background:#182e33;border:1px solid #567571;border-radius:10px;padding:12px}
+.line-meter-head{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:13px;color:#e7f1e9}
+.line-meter-head strong{color:#f0d6a2;font-variant-numeric:tabular-nums;font-size:17px}
+.line-meter progress{width:100%;height:20px;accent-color:#8ec2a6;margin-top:11px}
+.line-meter.late progress{accent-color:#e7a07d}
+.line-viz-foot{font-size:12px;color:#d1e3dc;line-height:1.6;margin:12px 0 0}
+.line-viz-foot.warning{color:#ffccb4}
+@media(max-width:620px){.line-viz-grid{grid-template-columns:1fr}}
