@@ -100,3 +100,12 @@ test("UI-facing order hides exact manufactured defects",()=>{
  assert.ok(order.riskHint);
  assert.ok(!Object.hasOwn(order,"actualDefects"));
 });
+
+test("forged initial funds, first-day profits, or continued bankruptcy cannot load",()=>{
+ const fresh=E.initial();
+ const forgery={...fresh,cash:fresh.cash+10000};
+ assert.throws(()=>E.validate(forgery),/初期残高/);
+ const day2=E.advance(fresh,typical).state;
+ const forgedLedger=JSON.parse(JSON.stringify(day2));forgedLedger.history[0].profit+=10000;
+ assert.throws(()=>E.validate(forgedLedger),/初日の現金台帳/);
+});
