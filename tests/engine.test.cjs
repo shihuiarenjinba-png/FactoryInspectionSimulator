@@ -60,9 +60,11 @@ test("no automatic quality pass, zero inspected reveals no defects",()=>{
  assert.equal(r.report.escaped,r.report.totalDefects);
 });
 test("no fixed cost without cash; no state mutation on rejection",()=>{
- const s=E.initial(1234);s.cash=500;
- const before=JSON.stringify(s);
- assert.throws(()=>E.advance(s,typical),/資金/);
+ let s=E.initial(174);
+ for(let i=0;i<18;i++)s=E.advance(s,{inspectPercent:0,workers:1,repair:false,overtime:false,calibrate:false}).state;
+ assert.ok(!s.finished&&s.cash<115000,"must use a legitimate low-capital state");
+ const before=JSON.stringify(s),costly={inspectPercent:100,workers:4,repair:true,overtime:true,calibrate:true};
+ assert.throws(()=>E.advance(s,costly),/資金/);
  assert.equal(JSON.stringify(s),before);
 });
 test("invalid inspection percentage and staff numbers are refused",()=>{
