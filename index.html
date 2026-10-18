@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none';script-src 'self';style-src 'self';connect-src 'none';img-src 'self' data:;object-src 'none';frame-src 'none';base-uri 'none'">
+  <title>検査ラインの一日 — Factory Inspection Simulator</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="./src/engine.js"></script><script defer src="./src/app.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">FACTORY INSPECTION SIMULATOR / OFFLINE</p>
+        <h1>急ぐか、調べるか。<br><span>品質も利益も、あなたの判断次第。</span></h1>
+        <p class="lead">部品の不良を見逃せば信用を失う。時間をかけすぎれば納期に遅れる。
+        検査ラインの責任者として、限られた人手と費用で工場を経営しよう。</p>
+      </div><div class="status">開発版・販売HOLD</div>
+    </header>
+    <section class="stats" aria-label="工場の状況">
+      <div><small>営業日</small><strong id="day">—</strong></div>
+      <div><small>運転資金</small><strong id="cash">—</strong></div>
+      <div><small>顧客からの信用</small><strong id="reputation">—</strong></div>
+      <div><small>出荷実績</small><strong id="shipments">—</strong></div>
+    </section>
+    <section class="panel">
+      <div class="step"><span>1</span><div><h2>今日の注文を確認</h2><p>製品、数量、納期、想定される不良リスクをチェック。</p></div></div>
+      <div id="order" class="order"></div>
+    </section>
+    <section class="panel">
+      <div class="step"><span>2</span><div><h2>検査する量と人手を決める</h2><p>検査を増やすほど安心。でも費用と作業時間も増えます。</p></div></div>
+      <div class="controls">
+        <label for="inspectPercent">何％の部品を検査する？<select id="inspectPercent">
+          <option value="0">0% — 検査なし</option>
+          <option value="25">25% — 抜き取り</option>
+          <option value="50" selected>50% — 標準検査</option>
+          <option value="75">75% — 重点検査</option>
+          <option value="100">100% — 全数検査</option>
+        </select></label>
+        <label for="workers">検査担当者の数<select id="workers">
+          <option value="1">1人 — 低コスト</option>
+          <option value="2" selected>2人 — 標準</option>
+          <option value="3">3人 — やや高速</option>
+          <option value="4">4人 — 高速</option>
+        </select></label>
+      </div>
+      <details class="advanced"><summary>再検査・残業・校正（詳しい設定）</summary>
+        <label class="check"><input type="checkbox" id="repair" checked> 見つけた不良品を修理する（成功しない場合は廃棄）</label>
+        <label class="check"><input type="checkbox" id="overtime"> 残業で作業時間を短縮する（追加人件費あり）</label>
+        <label class="check"><input type="checkbox" id="calibrate"> 検査設備を校正する（検出率が上がり費用が発生）</label>
+      </details>
+    </section>
+    <section class="panel action">
+      <div class="step"><span>3</span><div><h2>検査ラインを動かす</h2><p>予想時間と固定費を確認して、その日の注文を処理しましょう。</p></div></div>
+      <div class="preview" id="preview" role="status">検査方針を選んでください。</div>
+      <button id="run" class="primary" type="button">この方針で製品を検査・出荷する →</button>
+    </section>
+    <section class="panel result" aria-labelledby="outcomeHeading">
+      <h2 id="outcomeHeading">今日の検査結果</h2>
+      <div id="outcome" aria-live="polite"><p>検査ラインを動かすと、不良品・納期・収支の結果が表示されます。</p></div>
+    </section>
+    <details class="records">
+      <summary>営業履歴・セーブ管理（詳細）</summary>
+      <div class="records-inner">
+        <div id="history"></div>
+        <div class="buttons">
+          <button id="export" type="button">セーブを書き出す</button>
+          <button id="import" type="button">セーブを読み込む</button>
+          <button id="reset" class="danger" type="button">最初からやり直す</button>
+          <input id="savefile" type="file" accept=".json,application/json" hidden>
+        </div>
+        <p>このゲームは架空の品質管理モデルです。実工場の安全性・歩留まりを保証するものではありません。</p>
+      </div>
+    </details>
+    <footer>オフライン完結・アカウント登録なし。元セーブを読めないときは勝手に上書きしません。</footer>
+  </main>
+</body></html>
