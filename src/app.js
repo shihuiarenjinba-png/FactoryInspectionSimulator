@@ -63,7 +63,7 @@ function preflight(){
   $("run").disabled=true;return;
  }
  if(state.finished){
-  root.append(create("p",state.cash<0?"運転資金が不足し、工場の営業が終了しました。":"90日間の経営を完走しました。"));
+  root.append(create("p",state.day<=E.MAX_DAYS?"最低限の運営資金が不足し、工場の営業が終了しました。":"90日間の経営を完走しました。"));
   $("run").disabled=true;return;
  }
  try{
