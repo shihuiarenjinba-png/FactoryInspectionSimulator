@@ -23,6 +23,7 @@
       <div><small>顧客からの信用</small><strong id="reputation">—</strong></div>
       <div><small>出荷実績</small><strong id="shipments">—</strong></div>
     </section>
+    <div class="milestone" id="milestone" role="status">まずは500個の出荷を目指しましょう。</div>
     <section class="panel">
       <div class="step"><span>1</span><div><h2>今日の注文を確認</h2><p>製品、数量、納期、想定される不良リスクをチェック。</p></div></div>
       <div id="order" class="order"></div>
@@ -44,6 +45,10 @@
           <option value="4">4人 — 高速</option>
         </select></label>
       </div>
+      <details class="advanced"><summary>他の検査率との時間・費用を比較する</summary>
+        <div id="comparison" class="comparison"></div>
+        <p class="muted">これは固定的な費用と時間の予測です。実際の不良数・補償費・修理費は実行するまで確定しません。</p>
+      </details>
       <details class="advanced"><summary>再検査・残業・校正（詳しい設定）</summary>
         <label class="check"><input type="checkbox" id="repair" checked> 見つけた不良品を修理する（成功しない場合は廃棄）</label>
         <label class="check"><input type="checkbox" id="overtime"> 残業で作業時間を短縮する（追加人件費あり）</label>
