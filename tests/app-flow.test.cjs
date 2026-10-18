@@ -2,7 +2,7 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm"),path=require("node:path");
 const engine=require("../src/engine.js");
 const source=fs.readFileSync(path.join(__dirname,"../src/app.js"),"utf8");
-const ids=["day","cash","reputation","shipments","order","outcome","history","preview",
+const ids=["day","cash","reputation","shipments","milestone","comparison","order","outcome","history","preview",
 "inspectPercent","workers","repair","overtime","calibrate","run","export","import","reset","savefile"];
 function harness(initialRaw,confirmResult=true){
  const elements={},handlers={},saved=new Map();
@@ -85,4 +85,23 @@ test("valid existing save loads without advancing the simulation",()=>{
  assert.equal(h.saved.get("factory-inspection:save:v1"),serialized);
  assert.equal(h.elements.day.textContent,"2日目");
  assert.equal(h.elements.reputation.textContent,initial.reputation+" / 100");
+});
+
+test("growth objective and strategy comparison are explanatory and never modify saved funds",()=>{
+ const h=harness(),key="factory-inspection:save:v1",before=h.saved.get(key);
+ assert.match(h.elements.milestone.textContent,/500個/);
+ assert.match(h.elements.comparison.textContent,/25%/);
+ assert.match(h.elements.comparison.textContent,/100%/);
+ assert.match(h.elements.comparison.textContent,/分/);
+ h.elements.inspectPercent.value="75";
+ h.elements.inspectPercent.handlers.change();
+ assert.match(h.elements.comparison.textContent,/75%/);
+ assert.equal(h.saved.get(key),before,"comparing strategies must not run the simulation or save");
+});
+test("growth objective updates only after an actual manufacturing day",()=>{
+ const h=harness(),initial=h.elements.milestone.textContent;
+ h.click("run");
+ assert.match(h.elements.milestone.textContent,/現在/);
+ assert.ok(h.elements.milestone.textContent!==initial);
+ assert.match(h.elements.comparison.textContent,/固定的費用|円/);
 });
