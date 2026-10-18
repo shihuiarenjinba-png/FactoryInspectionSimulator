@@ -140,3 +140,26 @@ test("multiple inspection policies can be optimal on different lots, not one har
  }
  assert.ok(winners.size>=4,"pricing, speed, quality and calibration must produce meaningful policy tradeoffs");
 });
+
+test("ninety-day stress across different policies always ends or offers an affordable fallback",()=>{
+ const fallback={inspectPercent:0,workers:1,repair:false,overtime:false,calibrate:false};
+ const policies=[
+  {...fallback},
+  {inspectPercent:50,workers:2,repair:true,overtime:false,calibrate:false},
+  {inspectPercent:100,workers:4,repair:true,overtime:false,calibrate:false},
+  {inspectPercent:100,workers:1,repair:true,overtime:false,calibrate:false}
+ ];
+ for(const policy of policies)for(let seed=1;seed<=8;seed++){
+  let s=E.initial(seed),days=0;
+  while(!s.finished){
+   const chosen=E.estimate(s,policy).canPay?policy:fallback;
+   assert.ok(E.estimate(s,chosen).canPay,"low-cash player must have a safe next action");
+   const result=E.advance(s,chosen);
+   assert.equal(result.report.shipped+result.report.scrapped,result.report.order.units);
+   assert.equal(result.state.cash,s.cash+result.report.profit);
+   assert.deepEqual(E.validate(result.state),result.state);
+   s=result.state;days++;assert.ok(days<=E.MAX_DAYS);
+  }
+  assert.ok(s.day===E.MAX_DAYS+1 || s.cash<E.POLICY.overhead+E.POLICY.wagePerWorker);
+ }
+});
