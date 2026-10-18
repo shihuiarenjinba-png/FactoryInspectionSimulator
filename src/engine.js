@@ -7,14 +7,14 @@
 "use strict";
 const VERSION=1,MAX_DAYS=90;
 const PRODUCTS=Object.freeze([
- {id:"board",name:"電子部品の基板",price:3600,defectPenalty:24500,baseRisk:.065},
- {id:"valve",name:"精密バルブ",price:6100,defectPenalty:36000,baseRisk:.095},
- {id:"toy",name:"玩具の可動部品",price:2700,defectPenalty:20000,baseRisk:.085},
- {id:"package",name:"食品包装材",price:3200,defectPenalty:29000,baseRisk:.075}
+ {id:"board",name:"電子部品の基板",price:3600,defectPenalty:9900,baseRisk:.065},
+ {id:"valve",name:"精密バルブ",price:6100,defectPenalty:14850,baseRisk:.095},
+ {id:"toy",name:"玩具の可動部品",price:2700,defectPenalty:8250,baseRisk:.085},
+ {id:"package",name:"食品包装材",price:3200,defectPenalty:12100,baseRisk:.075}
 ]);
 const INSPECTION_LEVELS=Object.freeze([0,25,50,75,100]);
-const POLICY=Object.freeze({baseCash:800000,overhead:18500,wagePerWorker:11000,inspectCost:155,
- repairCost:840,calibrationCost:12500,falseAlarmCost:230,lateCostPerMinute:260,maxWorkers:4});
+const POLICY=Object.freeze({baseCash:800000,overhead:18500,wagePerWorker:18000,inspectCost:450,
+ repairCost:840,calibrationCost:18000,falseAlarmCost:230,lateCostPerMinute:3500,maxWorkers:4});
 const integer=(n,name,min,max)=>{if(!Number.isSafeInteger(n)||n<min||n>max)throw Error(name+"は"+min+"から"+max+"の整数にしてください。");return n;};
 function hash(seed,day,index,salt){
  let x=(seed ^ Math.imul(day,0x9e3779b1) ^ Math.imul(index+1,0x85ebca6b) ^ Math.imul(salt,0xc2b2ae35))>>>0;
@@ -47,10 +47,10 @@ function validate(raw){
  });
  if(x.history.length===0 && (x.cash!==POLICY.baseCash||x.reputation!==65))throw Error("初期残高・信用度が不正です。");
  if(x.history.length && x.history[0].cash!==POLICY.baseCash+x.history[0].profit)throw Error("初日の現金台帳が不正です。");
- for(let i=0;i<x.history.length-1;i++)if(x.history[i].cash<0)throw Error("資金不足で終了した履歴を継続できません。");
+ for(let i=0;i<x.history.length-1;i++)if(x.history[i].cash<POLICY.overhead+POLICY.wagePerWorker)throw Error("資金不足で終了した履歴を継続できません。");
  if(delivered!==x.totalDelivered||escaped!==x.totalEscaped)throw Error("累計の出荷記録が不正です。");
  if(x.history.length&&(x.history.at(-1).cash!==x.cash||x.history.at(-1).reputation!==x.reputation))throw Error("期末残高・評判が履歴と一致しません。");
- if(x.finished!==((x.day>MAX_DAYS)||x.cash<0))throw Error("営業終了状態が不正です。");
+ if(x.finished!==((x.day>MAX_DAYS)||x.cash<POLICY.overhead+POLICY.wagePerWorker))throw Error("営業終了状態が不正です。");
  return x;
 }
 function currentOrder(state){
@@ -59,7 +59,7 @@ function currentOrder(state){
  const units=70+Math.floor(hash(s.seed,s.day,3,2)*81);
  const latentRisk=Math.min(.23,kind.baseRisk+(.11*hash(s.seed,s.day,4,3)-.035));
  const deadline=170+Math.floor(hash(s.seed,s.day,5,4)*125);
- const premium=.91+s.reputation/680;
+ const premium=.55+s.reputation/400;
  const unitPrice=Math.round(kind.price*premium/50)*50;
  const riskHint=latentRisk<.085?"やや低い":latentRisk<.14?"通常":"やや高い";
  return {day:s.day,id:kind.id,name:kind.name,units,deadline,unitPrice,
@@ -121,9 +121,9 @@ function advance(raw,rawPlan){
  const profit=revenue-expenses;
  const cash=s.cash+profit;
  const reputation=Math.max(0,Math.min(100,s.reputation
-  + (escaped===0?2:-Math.min(16,escaped*2))
+  + (escaped===0?2:-Math.min(10,Math.ceil(escaped/3)))
   - (lateness>0?Math.min(10,Math.ceil(lateness/25)):0)));
- const finished=s.day===MAX_DAYS||cash<0;
+ const finished=s.day===MAX_DAYS||cash<POLICY.overhead+POLICY.wagePerWorker;
  const report={day:s.day,order:{day:order.day,id:order.id,name:order.name,units:order.units,deadline:order.deadline,unitPrice:order.unitPrice,riskHint:order.riskHint},
   plan:p,inspected:count,totalDefects:actualDefects,found,repaired,scrapped,falseAlerts,escaped,
   shipped:delivered,duration,lateness,revenue,expenses,profit,cash,reputation,
