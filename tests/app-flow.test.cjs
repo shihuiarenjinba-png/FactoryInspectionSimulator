@@ -3,7 +3,7 @@ const test=require("node:test"),assert=require("node:assert/strict"),fs=require(
 const engine=require("../src/engine.js");
 const source=fs.readFileSync(path.join(__dirname,"../src/app.js"),"utf8");
 const ids=["day","cash","reputation","shipments","milestone","comparison","lineVizContent","order","outcome","history","preview",
-"inspectPercent","workers","repair","overtime","calibrate","run","export","import","reset","savefile"];
+"policyBudget","policyStandard","policyQuality","inspectPercent","workers","repair","overtime","calibrate","run","export","import","reset","savefile"];
 function harness(initialRaw,confirmResult=true){
  const elements={},handlers={},saved=new Map();
  if(initialRaw!==undefined)saved.set("factory-inspection:save:v1",initialRaw);
@@ -105,4 +105,12 @@ test("growth objective updates only after an actual manufacturing day",()=>{
  assert.match(h.elements.milestone.textContent,/現在/);
  assert.ok(h.elements.milestone.textContent!==initial);
  assert.match(h.elements.comparison.textContent,/固定的費用|円/);
+});
+
+test("preset buttons update inputs and estimates without touching saved finances",()=>{
+ const h=harness(),key="factory-inspection:save:v1",before=h.saved.get(key);
+ h.click("policyQuality");assert.equal(h.elements.inspectPercent.value,"100");assert.equal(h.elements.workers.value,"4");
+ assert.match(h.elements.preview.textContent,/検査予定/);assert.equal(h.saved.get(key),before);
+ h.click("policyBudget");assert.equal(h.elements.inspectPercent.value,"25");assert.equal(h.elements.workers.value,"1");
+ assert.equal(h.saved.get(key),before);
 });
