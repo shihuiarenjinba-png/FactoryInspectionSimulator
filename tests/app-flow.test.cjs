@@ -20,6 +20,7 @@ function harness(initialRaw,confirmResult=true){
   replaceChildren(...children){this.children=children;this._text="";}
   addEventListener(type,callback){this.handlers[type]=callback;}
   scrollIntoView(){}
+  remove(){}
   click(){if(this.handlers.click)this.handlers.click({target:this});}
  }
  for(const id of ids)elements[id]=new Node(id);
