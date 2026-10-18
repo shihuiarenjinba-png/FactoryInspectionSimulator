@@ -1,6 +1,6 @@
 /* Functional operation tabs; all game inputs and models remain in their original sections. */
 (() => {"use strict";
- const layout=[{"id":"orders","label":"📦 注文","panels":[0]},{"id":"quality","label":"🔍 検査方針・修理","panels":[1]},{"id":"run","label":"🚚 出荷・結果","panels":[2,3]},{"id":"history","label":"📋 記録・セーブ","details":".extra"}];
+ const layout=[{"id":"orders","label":"📦 注文","panels":[0]},{"id":"quality","label":"🔍 検査方針・修理","panels":[1]},{"id":"run","label":"🚚 出荷・結果","panels":[2,3]},{"id":"history","label":"📋 記録・セーブ","details":".records"}];
  let selected=layout[0].id;
  function boot(){
   const main=document.querySelector("main.shell");
