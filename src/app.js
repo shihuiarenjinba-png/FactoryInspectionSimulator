@@ -167,6 +167,13 @@ async function importSave(file){
 }
 function init(){
  state=load();if(!recoveryBlocked)persist();redraw();
+ const presets={policyBudget:{percent:25,workers:1},policyStandard:{percent:50,workers:2},
+  policyQuality:{percent:100,workers:4}};
+ for(const [id,policy] of Object.entries(presets))$(id).addEventListener("click",()=>{
+  if(recoveryBlocked||state.finished)return;
+  $("inspectPercent").value=String(policy.percent);$("workers").value=String(policy.workers);
+  preflight();comparisonView();
+ });
  for(const id of ["inspectPercent","workers","repair","overtime","calibrate"])$(id).addEventListener("change",()=>{preflight();comparisonView();});
  $("run").addEventListener("click",submit);
  $("export").addEventListener("click",exportSave);
