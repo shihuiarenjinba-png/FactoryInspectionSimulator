@@ -88,6 +88,28 @@ function comparisonView(){
   table.append(body);root.append(table);
  }catch(error){root.append(create("p",error.message,"muted"));}
 }
+
+function lineView(estimate,error){
+ const root=$("lineVizContent");root.replaceChildren();
+ if(!estimate){root.append(create("p",error||"検査方針を選択してください。","line-viz-foot warning"));return;}
+ const grid=create("div",undefined,"line-viz-grid");
+ function meter(title,detail,value,max,late){
+  const card=create("div",undefined,"line-meter"+(late?" late":""));
+  const header=create("div",undefined,"line-meter-head");
+  header.append(create("span",title),create("strong",detail));card.append(header);
+  const progress=create("progress");progress.max=Math.max(1,max);progress.value=Math.max(0,Math.min(max,value));
+  progress.setAttribute("aria-label",title+" "+detail);card.append(progress);grid.append(card);
+ }
+ meter("検査する製品",estimate.samples+" / "+estimate.order.units+"個",estimate.samples,estimate.order.units,false);
+ meter("予想作業時間",estimate.expectedMinutes+" / 納期"+estimate.deadline+"分",
+   estimate.expectedMinutes,estimate.deadline,estimate.expectedLate);
+ root.append(grid);
+ root.append(create("p","予想固定費 "+yen(estimate.baseCost)+
+  " ｜ "+(estimate.expectedLate?"今の計画は納期超過の見込み。人員・検査率の変更を検討してください。":
+  "現時点では納期内の見込み。実際の不良数や補償費は未確定です。"),
+  "line-viz-foot"+(estimate.expectedLate?" warning":"")));
+}
+
 function preflight(){
  const root=$("preview");root.className="preview";root.replaceChildren();
  if(recoveryBlocked){
@@ -96,21 +118,21 @@ function preflight(){
   root.append(create("p",unreadableRaw!==null?
     "下の「セーブ管理」から元データを書き出し、正常なセーブを読み込むか、新規開始してください。":
     "端末の保存機能にアクセスできません。設定を確認するか、確認のうえ新規開始してください。"));
-  $("run").disabled=true;return;
+  lineView(null,"セーブの復元後にラインを操作できます。");$("run").disabled=true;return;
  }
  if(state.finished){
   root.append(create("p",state.day<=E.MAX_DAYS?"最低限の運営資金が不足し、工場の営業が終了しました。":"90日間の経営を完走しました。"));
-  $("run").disabled=true;return;
+  lineView(null,"経営が終了したため、検査ラインは停止しています。");$("run").disabled=true;return;
  }
  try{
   const a=E.estimate(state,plan());
-  if(!a.canPay)throw Error("固定費を支払える資金が不足しています。");
+  lineView(a);if(!a.canPay)throw Error("固定費を支払える資金が不足しています。");
   const severity=a.expectedLate?"この計画では納期遅れの可能性があります。":"この計画は納期内の見込みですが、実際の時間は不良品の発見数で変化します。";
   root.append(create("p","検査予定："+a.samples+" / "+a.order.units+"個 ｜ 所要時間の予想："+a.expectedMinutes+"分（納期 "+a.deadline+"分）"));
   root.append(create("p","検査・人件費等の固定的費用："+yen(a.baseCost)+" ｜ "+severity));
   root.append(create("p","修理費・返品対応費・納期遅れの費用は検査結果によって増減します。","subtle"));
   $("run").disabled=false;
- }catch(err){root.classList.add("error");root.append(create("p",err.message));$("run").disabled=true;}
+ }catch(err){lineView(null,err.message);root.classList.add("error");root.append(create("p",err.message));$("run").disabled=true;}
 }
 function redraw(){overview();milestoneView();orderView();outcomeView();historyView();preflight();comparisonView();}
 function submit(){
