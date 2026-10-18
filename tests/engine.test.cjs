@@ -163,3 +163,21 @@ test("ninety-day stress across different policies always ends or offers an affor
   assert.ok(s.day===E.MAX_DAYS+1 || s.cash<E.POLICY.overhead+E.POLICY.wagePerWorker);
  }
 });
+
+test("staff training upgrades lasting inspection capacity and charges cash exactly",()=>{
+ const standard={inspectPercent:50,workers:2,repair:true,overtime:false,calibrate:false};
+ let s=E.initial(99);
+ assert.throws(()=>E.advance(s,{...standard,train:true}),/7日目/);
+ for(let day=1;day<7;day++)s=E.advance(s,standard).state;
+ const trained=E.advance(s,{...standard,train:true});
+ const old=E.advance(s,standard);
+ assert.equal(trained.state.trainingLevel,1);
+ assert.equal(trained.report.costs.training,E.POLICY.trainingCost);
+ assert.equal(trained.state.cash,s.cash+trained.report.profit);
+ assert.ok(trained.report.duration<=old.report.duration);
+ assert.equal(E.validate(trained.state).trainingLevel,1);
+ const forged=JSON.parse(JSON.stringify(trained.state));forged.trainingLevel=3;
+ assert.throws(()=>E.validate(forged),/研修記録/);
+ const prior=JSON.parse(JSON.stringify(old.state));delete prior.trainingLevel;delete prior.history[0].trained;
+ assert.equal(E.validate(prior).trainingLevel,0);
+});
