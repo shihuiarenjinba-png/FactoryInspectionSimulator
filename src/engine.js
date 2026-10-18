@@ -45,6 +45,9 @@ function validate(raw){
   if(i&&v.cash!==raw.history[i-1].cash+v.profit)throw Error("収支台帳の整合性が不正です。");
   delivered+=v.delivered;escaped+=v.escaped;x.history.push(rec);
  });
+ if(x.history.length===0 && (x.cash!==POLICY.baseCash||x.reputation!==65))throw Error("初期残高・信用度が不正です。");
+ if(x.history.length && x.history[0].cash!==POLICY.baseCash+x.history[0].profit)throw Error("初日の現金台帳が不正です。");
+ for(let i=0;i<x.history.length-1;i++)if(x.history[i].cash<0)throw Error("資金不足で終了した履歴を継続できません。");
  if(delivered!==x.totalDelivered||escaped!==x.totalEscaped)throw Error("累計の出荷記録が不正です。");
  if(x.history.length&&(x.history.at(-1).cash!==x.cash||x.history.at(-1).reputation!==x.reputation))throw Error("期末残高・評判が履歴と一致しません。");
  if(x.finished!==((x.day>MAX_DAYS)||x.cash<0))throw Error("営業終了状態が不正です。");
