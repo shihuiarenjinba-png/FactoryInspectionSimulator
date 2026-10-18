@@ -59,13 +59,16 @@ test("no automatic quality pass, zero inspected reveals no defects",()=>{
  assert.equal(r.report.falseAlerts,0);
  assert.equal(r.report.escaped,r.report.totalDefects);
 });
-test("no fixed cost without cash; no state mutation on rejection",()=>{
- let s=E.initial(174);
- for(let i=0;i<18;i++)s=E.advance(s,{inspectPercent:0,workers:1,repair:false,overtime:false,calibrate:false}).state;
- assert.ok(!s.finished&&s.cash<115000,"must use a legitimate low-capital state");
+test("expensive operations fail safely while an affordable fallback remains possible",()=>{
+ const risky={inspectPercent:100,workers:1,repair:true,overtime:false,calibrate:false};
+ const s=E.advance(E.initial(5),risky).state;
+ assert.ok(!s.finished&&s.cash>0&&s.cash<100000,"legitimate low-cash scenario");
  const before=JSON.stringify(s),costly={inspectPercent:100,workers:4,repair:true,overtime:true,calibrate:true};
  assert.throws(()=>E.advance(s,costly),/資金/);
  assert.equal(JSON.stringify(s),before);
+ const affordable=E.advance(s,{inspectPercent:0,workers:1,repair:false,overtime:false,calibrate:false});
+ assert.equal(affordable.state.day,s.day+1);
+ assert.ok(affordable.state.cash>=0);
 });
 test("invalid inspection percentage and staff numbers are refused",()=>{
  const s=E.initial(42);
@@ -110,4 +113,12 @@ test("forged initial funds, first-day profits, or continued bankruptcy cannot lo
  const day2=E.advance(fresh,typical).state;
  const forgedLedger=JSON.parse(JSON.stringify(day2));forgedLedger.history[0].profit+=10000;
  assert.throws(()=>E.validate(forgedLedger),/初日の現金台帳/);
+});
+
+test("unable-to-operate bankruptcy or 90-day completion ends cleanly",()=>{
+ const overInspect={inspectPercent:100,workers:1,repair:true,overtime:false,calibrate:false};
+ const result=E.advance(E.initial(30),overInspect).state;
+ assert.equal(result.finished,true);
+ assert.equal(E.validate(result).finished,true);
+ assert.throws(()=>E.advance(result,overInspect),/営業終了/);
 });
