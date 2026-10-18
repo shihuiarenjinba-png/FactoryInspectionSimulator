@@ -15,7 +15,7 @@ function persist(){
  catch(err){notice="自動保存に失敗しました。記録の書き出しをお試しください。";return false;}
 }
 function plan(){return {inspectPercent:Number($("inspectPercent").value),workers:Number($("workers").value),
- repair:$("repair").checked,overtime:$("overtime").checked,calibrate:$("calibrate").checked};}
+ repair:$("repair").checked,overtime:$("overtime").checked,calibrate:$("calibrate").checked,train:$("train").checked};}
 function appendPair(container,name,value){const row=create("div",undefined,"datum");row.append(create("small",name),create("strong",value));container.append(row);}
 function orderView(){
  const root=$("order");root.replaceChildren();
@@ -47,6 +47,8 @@ function historyView(){
  }
 }
 function overview(){
+ $("trainingProgress").textContent="検査員の育成 "+state.trainingLevel+" / 3 ｜ 研修は7日目から（45,000円）";
+ $("train").disabled=state.day<7||state.trainingLevel>=E.POLICY.maxTraining||state.finished;
  $("day").textContent=state.finished?"終了（"+(state.day-1)+"日）":state.day+"日目";
  $("cash").textContent=yen(state.cash);
  $("reputation").textContent=state.reputation+" / 100";
@@ -145,7 +147,7 @@ async function importSave(file){
 }
 function init(){
  state=load();if(!recoveryBlocked)persist();redraw();
- for(const id of ["inspectPercent","workers","repair","overtime","calibrate"])$(id).addEventListener("change",()=>{preflight();comparisonView();});
+ for(const id of ["inspectPercent","workers","repair","overtime","calibrate","train"])$(id).addEventListener("change",()=>{preflight();comparisonView();});
  $("run").addEventListener("click",submit);
  $("export").addEventListener("click",exportSave);
  $("import").addEventListener("click",()=>$("savefile").click());
