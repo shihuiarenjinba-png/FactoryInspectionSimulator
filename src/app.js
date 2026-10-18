@@ -52,6 +52,42 @@ function overview(){
  $("reputation").textContent=state.reputation+" / 100";
  $("shipments").textContent=state.totalDelivered.toLocaleString("ja-JP")+"個";
 }
+function milestoneView(){
+ const node=$("milestone");
+ if(state.finished){
+  node.textContent=state.day>E.MAX_DAYS?
+   "90日間の運営を完走！ 出荷 "+state.totalDelivered.toLocaleString("ja-JP")+"個、最終信用 "+state.reputation+"。":
+   "工場の経営はここで終了。"+(state.day-1)+"日間の判断を振り返り、次の挑戦に活かしましょう。";
+  return;
+ }
+ const levels=[
+  {units:500,trust:0,title:"最初の500個を出荷しよう"},
+  {units:2000,trust:50,title:"累計2000個を出荷し、顧客の信用を50以上に"},
+  {units:5000,trust:70,title:"累計5000個と信用70を両立しよう"},
+  {units:9000,trust:80,title:"累計9000個と信用80を目指そう"}
+ ];
+ const goal=levels.find(g=>state.totalDelivered<g.units||state.reputation<g.trust);
+ node.textContent=goal?"次の経営目標："+goal.title+" ｜ 現在 "+state.totalDelivered.toLocaleString("ja-JP")+"個・信用 "+state.reputation:
+  "主要目標を達成！ あとは90日間の経営を守り抜こう。現在 "+state.totalDelivered.toLocaleString("ja-JP")+"個・信用 "+state.reputation;
+}
+function comparisonView(){
+ const root=$("comparison");root.replaceChildren();
+ if(recoveryBlocked||state.finished){root.append(create("p","セーブの復旧・経営終了時は比較できません。","muted"));return;}
+ try{
+  const selected=plan(),table=create("table");
+  const head=create("thead"),headRow=create("tr");
+  for(const title of ["検査率","検査数","予想時間","固定的費用","資金"]){headRow.append(create("th",title));}
+  head.append(headRow);table.append(head);
+  const body=create("tbody");
+  for(const percent of E.INSPECTION_LEVELS){
+   const estimate=E.estimate(state,{...selected,inspectPercent:percent});
+   const tr=create("tr",undefined,percent===selected.inspectPercent?"selected-row":"");
+   for(const value of [percent+"%",estimate.samples+"個",estimate.expectedMinutes+"分",yen(estimate.baseCost),estimate.canPay?"可能":"不足"])tr.append(create("td",value));
+   body.append(tr);
+  }
+  table.append(body);root.append(table);
+ }catch(error){root.append(create("p",error.message,"muted"));}
+}
 function preflight(){
  const root=$("preview");root.className="preview";root.replaceChildren();
  if(recoveryBlocked){
@@ -76,7 +112,7 @@ function preflight(){
   $("run").disabled=false;
  }catch(err){root.classList.add("error");root.append(create("p",err.message));$("run").disabled=true;}
 }
-function redraw(){overview();orderView();outcomeView();historyView();preflight();}
+function redraw(){overview();milestoneView();orderView();outcomeView();historyView();preflight();comparisonView();}
 function submit(){
  if(recoveryBlocked||state.finished)return;
  try{
@@ -109,7 +145,7 @@ async function importSave(file){
 }
 function init(){
  state=load();if(!recoveryBlocked)persist();redraw();
- for(const id of ["inspectPercent","workers","repair","overtime","calibrate"])$(id).addEventListener("change",preflight);
+ for(const id of ["inspectPercent","workers","repair","overtime","calibrate"])$(id).addEventListener("change",()=>{preflight();comparisonView();});
  $("run").addEventListener("click",submit);
  $("export").addEventListener("click",exportSave);
  $("import").addEventListener("click",()=>$("savefile").click());
