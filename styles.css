@@ -55,3 +55,11 @@ footer{margin:24px 0}
 @media(max-width:850px){.order-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.stats,.result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.shell{padding:17px 11px 50px}.hero{flex-direction:column;gap:2px}.panel{padding:15px}.controls{grid-template-columns:1fr}.order-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stats>div{padding:11px}.stats strong{font-size:17px}.result-grid .datum strong{font-size:15px}.primary{width:100%}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Optional comparison stays out of the primary three-step decision path. */
+.milestone{padding:12px 17px;margin:0 0 14px;border:1px solid #8caa8b;background:#263f3d;border-radius:10px;font-size:13px;color:#f4e4c3;font-weight:700}
+.comparison{width:100%;overflow-x:auto;margin-top:12px}
+.comparison table{width:100%;border-collapse:collapse;min-width:530px;font-size:13px}
+.comparison th,.comparison td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.comparison th{color:#d5e7d4}
+.comparison .selected-row{background:#355451;font-weight:750}
