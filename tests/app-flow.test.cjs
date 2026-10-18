@@ -3,7 +3,7 @@ const test=require("node:test"),assert=require("node:assert/strict"),fs=require(
 const engine=require("../src/engine.js");
 const source=fs.readFileSync(path.join(__dirname,"../src/app.js"),"utf8");
 const ids=["day","cash","reputation","shipments","milestone","comparison","order","outcome","history","preview",
-"inspectPercent","workers","repair","overtime","calibrate","run","export","import","reset","savefile"];
+"inspectPercent","workers","repair","overtime","calibrate","train","trainingProgress","run","export","import","reset","savefile"];
 function harness(initialRaw,confirmResult=true){
  const elements={},handlers={},saved=new Map();
  if(initialRaw!==undefined)saved.set("factory-inspection:save:v1",initialRaw);
@@ -104,4 +104,11 @@ test("growth objective updates only after an actual manufacturing day",()=>{
  assert.match(h.elements.milestone.textContent,/現在/);
  assert.ok(h.elements.milestone.textContent!==initial);
  assert.match(h.elements.comparison.textContent,/固定的費用|円/);
+});
+
+test("staff training is initially locked and only becomes available after day seven",()=>{
+ const h=harness(),key="factory-inspection:save:v1";
+ assert.equal(h.elements.train.disabled,true);
+ assert.match(h.elements.trainingProgress.textContent,/0 \/ 3/);
+ assert.equal(JSON.parse(h.saved.get(key)).trainingLevel,0);
 });
