@@ -77,3 +77,9 @@ footer{margin:24px 0}
 .line-viz-foot{font-size:12px;color:#d1e3dc;line-height:1.6;margin:12px 0 0}
 .line-viz-foot.warning{color:#ffccb4}
 @media(max-width:620px){.line-viz-grid{grid-template-columns:1fr}}
+
+.policy-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:17px 0 4px}
+.policy-presets button{min-height:49px;padding:10px;border-radius:9px;border:1px solid #739a93;background:#304e4f;color:#f1efdd;font-weight:700}
+.policy-presets button:hover{border-color:#e8c48b;background:#395c55}
+.policy-presets button:focus-visible{outline:3px solid #ffe3a4;outline-offset:3px}
+@media(max-width:620px){.policy-presets{grid-template-columns:1fr}}
