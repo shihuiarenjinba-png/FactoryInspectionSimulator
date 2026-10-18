@@ -122,3 +122,21 @@ test("unable-to-operate bankruptcy or 90-day completion ends cleanly",()=>{
  assert.equal(E.validate(result).finished,true);
  assert.throws(()=>E.advance(result,overInspect),/営業終了/);
 });
+
+test("multiple inspection policies can be optimal on different lots, not one hard-coded winner",()=>{
+ const policies=[
+  {inspectPercent:0,workers:1,repair:true,overtime:false,calibrate:false},
+  {inspectPercent:25,workers:2,repair:true,overtime:false,calibrate:false},
+  {inspectPercent:50,workers:2,repair:true,overtime:false,calibrate:false},
+  {inspectPercent:75,workers:3,repair:true,overtime:false,calibrate:false},
+  {inspectPercent:100,workers:4,repair:true,overtime:false,calibrate:false},
+  {inspectPercent:100,workers:3,repair:true,overtime:false,calibrate:true}
+ ];
+ const winners=new Set();
+ for(let seed=1;seed<=120;seed++){
+  const s=E.initial(seed);
+  const profits=policies.map(p=>E.advance(s,p).report.profit);
+  winners.add(profits.indexOf(Math.max(...profits)));
+ }
+ assert.ok(winners.size>=4,"pricing, speed, quality and calibration must produce meaningful policy tradeoffs");
+});
