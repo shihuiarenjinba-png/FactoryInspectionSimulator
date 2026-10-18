@@ -14,7 +14,7 @@ const PRODUCTS=Object.freeze([
 ]);
 const INSPECTION_LEVELS=Object.freeze([0,25,50,75,100]);
 const POLICY=Object.freeze({baseCash:800000,overhead:18500,wagePerWorker:18000,inspectCost:450,
- repairCost:840,calibrationCost:18000,falseAlarmCost:230,lateCostPerMinute:3500,maxWorkers:4});
+ repairCost:840,calibrationCost:18000,falseAlarmCost:230,lateCostPerMinute:3500,maxWorkers:4,trainingCost:45000,maxTraining:3});
 const integer=(n,name,min,max)=>{if(!Number.isSafeInteger(n)||n<min||n>max)throw Error(name+"は"+min+"から"+max+"の整数にしてください。");return n;};
 function hash(seed,day,index,salt){
  let x=(seed ^ Math.imul(day,0x9e3779b1) ^ Math.imul(index+1,0x85ebca6b) ^ Math.imul(salt,0xc2b2ae35))>>>0;
@@ -24,7 +24,7 @@ function hash(seed,day,index,salt){
 function initial(seed=20261018){
  integer(seed,"seed",1,2147483647);
  return {version:VERSION,seed,day:1,cash:POLICY.baseCash,reputation:65,
-  totalDelivered:0,totalEscaped:0,history:[],finished:false};
+  totalDelivered:0,totalEscaped:0,trainingLevel:0,history:[],finished:false};
 }
 function validate(raw){
  if(!raw||raw.version!==VERSION||!Array.isArray(raw.history)||raw.history.length>MAX_DAYS)throw Error("保存形式を読み取れません。");
@@ -32,22 +32,25 @@ function validate(raw){
  day:integer(raw.day,"day",1,MAX_DAYS+1),cash:integer(raw.cash,"cash",-1000000000,10000000000),
  reputation:integer(raw.reputation,"reputation",0,100),
  totalDelivered:integer(raw.totalDelivered,"totalDelivered",0,1000000),
- totalEscaped:integer(raw.totalEscaped,"totalEscaped",0,1000000),history:[],finished:raw.finished};
+ totalEscaped:integer(raw.totalEscaped,"totalEscaped",0,1000000),trainingLevel:integer(raw.trainingLevel??0,"trainingLevel",0,POLICY.maxTraining),history:[],finished:raw.finished};
  if(typeof raw.finished!=="boolean"||raw.history.length!==raw.day-1)throw Error("日付または営業状態が不正です。");
- let delivered=0,escaped=0;
+ let delivered=0,escaped=0,trained=0;
  raw.history.forEach((v,i)=>{
   if(!v||v.day!==i+1)throw Error("営業記録の順序が不正です。");
   const rec={day:v.day,profit:integer(v.profit,"profit",-1e9,1e10),
    cash:integer(v.cash,"cash",-1e9,1e10),
    delivered:integer(v.delivered,"delivered",0,1000),
    escaped:integer(v.escaped,"escaped",0,1000),
-   reputation:integer(v.reputation,"reputation",0,100)};
+   reputation:integer(v.reputation,"reputation",0,100),trained:v.trained===true};
+  if(v.trained!==undefined&&typeof v.trained!=="boolean")throw Error("研修記録が不正です。");
+  if(rec.trained){trained++;if(trained>POLICY.maxTraining||i+1<7)throw Error("研修時期または回数が不正です。");}
   if(i&&v.cash!==raw.history[i-1].cash+v.profit)throw Error("収支台帳の整合性が不正です。");
   delivered+=v.delivered;escaped+=v.escaped;x.history.push(rec);
  });
  if(x.history.length===0 && (x.cash!==POLICY.baseCash||x.reputation!==65))throw Error("初期残高・信用度が不正です。");
  if(x.history.length && x.history[0].cash!==POLICY.baseCash+x.history[0].profit)throw Error("初日の現金台帳が不正です。");
  for(let i=0;i<x.history.length-1;i++)if(x.history[i].cash<POLICY.overhead+POLICY.wagePerWorker)throw Error("資金不足で終了した履歴を継続できません。");
+ if(trained!==x.trainingLevel)throw Error("研修記録と育成段階が一致しません。");
  if(delivered!==x.totalDelivered||escaped!==x.totalEscaped)throw Error("累計の出荷記録が不正です。");
  if(x.history.length&&(x.history.at(-1).cash!==x.cash||x.history.at(-1).reputation!==x.reputation))throw Error("期末残高・評判が履歴と一致しません。");
  if(x.finished!==((x.day>MAX_DAYS)||x.cash<POLICY.overhead+POLICY.wagePerWorker))throw Error("営業終了状態が不正です。");
@@ -71,17 +74,18 @@ function validatePlan(plan){
  if(!plan||!INSPECTION_LEVELS.includes(plan.inspectPercent))throw Error("検査率は0・25・50・75・100%から選んでください。");
  if(typeof plan.repair!=="boolean"||typeof plan.overtime!=="boolean"||typeof plan.calibrate!=="boolean")throw Error("作業の設定が不正です。");
  return {inspectPercent:plan.inspectPercent,workers:integer(plan.workers,"workers",1,POLICY.maxWorkers),
-  repair:plan.repair,overtime:plan.overtime,calibrate:plan.calibrate};
+  repair:plan.repair,overtime:plan.overtime,calibrate:plan.calibrate,train:plan.train===true};
 }
 function estimate(raw,p){
  const s=validate(raw),order=currentOrder(s),plan=validatePlan(p);
+ if(plan.train&&(s.day<7||s.trainingLevel>=POLICY.maxTraining))throw Error("研修は7日目から3回まで選択できます。");
  const samples=Math.round(order.units*plan.inspectPercent/100);
- const inspectMinutes=samples*4/plan.workers;
+ const inspectMinutes=samples*(4-(s.trainingLevel+Number(plan.train))*.35)/plan.workers;
  const expectedFound=samples*order._latentRisk*(plan.calibrate?.97:.86)*(plan.overtime?.95:1);
  const repairMinutes=expectedFound*(plan.repair?13:5)/plan.workers;
  const expectedMinutes=Math.max(1,Math.ceil((42+inspectMinutes+repairMinutes)*(plan.overtime?.76:1)));
  const fixed=POLICY.overhead+POLICY.wagePerWorker*plan.workers+
-  (plan.overtime?15000*plan.workers:0)+(plan.calibrate?POLICY.calibrationCost:0)+samples*POLICY.inspectCost;
+  (plan.overtime?15000*plan.workers:0)+(plan.calibrate?POLICY.calibrationCost:0)+(plan.train?POLICY.trainingCost:0)+samples*POLICY.inspectCost;
  return {order,plan,samples,expectedMinutes,deadline:order.deadline,
   baseCost:fixed,availableCash:s.cash,expectedLate:expectedMinutes>order.deadline,
   canPay:s.cash>=fixed};
@@ -93,7 +97,8 @@ function advance(raw,rawPlan){
   .sort((a,b)=>hash(s.seed,s.day,a,31)-hash(s.seed,s.day,b,31)||a-b);
  const inspected=new Set(ranking.slice(0,count));
  let actualDefects=0,found=0,escaped=0,repaired=0,scrapped=0,falseAlerts=0,extraWork=0;
- const sensitivity=Math.max(.5,Math.min(.995,(p.calibrate?.97:.85)-(p.overtime?.035:0)));
+ const skill=s.trainingLevel+Number(p.train);
+ const sensitivity=Math.max(.5,Math.min(.995,(p.calibrate?.97:.85)+skill*.028-(p.overtime?.035:0)));
  for(let i=0;i<order.units;i++){
   const defective=hash(s.seed,s.day,i,73)<order._latentRisk;
   if(defective)actualDefects++;
@@ -106,7 +111,7 @@ function advance(raw,rawPlan){
    }else escaped++;
   }else if(hash(s.seed,s.day,i,76)<.012){falseAlerts++;extraWork+=5;}
  }
- const duration=Math.max(1,Math.ceil((42+(count*4+extraWork)/p.workers)*(p.overtime?.76:1)));
+ const duration=Math.max(1,Math.ceil((42+(count*(4-skill*.35)+extraWork)/p.workers)*(p.overtime?.76:1)));
  const lateness=Math.max(0,duration-order.deadline);
  const delivered=order.units-scrapped;
  const revenue=delivered*order.unitPrice;
@@ -117,7 +122,7 @@ function advance(raw,rawPlan){
  const repairCost=repaired*POLICY.repairCost;
  const falseAlertCost=falseAlerts*POLICY.falseAlarmCost;
  const expenses=POLICY.overhead+wages+inspectionCost+repairCost+falseAlertCost+
-  (p.calibrate?POLICY.calibrationCost:0)+claims+lateFee;
+  (p.calibrate?POLICY.calibrationCost:0)+(p.train?POLICY.trainingCost:0)+claims+lateFee;
  const profit=revenue-expenses;
  const cash=s.cash+profit;
  const reputation=Math.max(0,Math.min(100,s.reputation
@@ -128,16 +133,16 @@ function advance(raw,rawPlan){
   plan:p,inspected:count,totalDefects:actualDefects,found,repaired,scrapped,falseAlerts,escaped,
   shipped:delivered,duration,lateness,revenue,expenses,profit,cash,reputation,
   costs:{overhead:POLICY.overhead,wages,inspection:inspectionCost,repair:repairCost,falseAlerts:falseAlertCost,
-    calibration:p.calibrate?POLICY.calibrationCost:0,claims,lateFee},
+    calibration:p.calibrate?POLICY.calibrationCost:0,training:p.train?POLICY.trainingCost:0,claims,lateFee},
   notes:[
    ...(escaped?["検査をすり抜けた不良品があり、顧客対応費用と信用低下が発生しました。"]:[]),
    ...(lateness?["納期を超過し、遅延費用が発生しました。"]:[]),
    ...(p.inspectPercent===0?["検査を省略しました。費用は減りますが、不良品を発見できません。"]:[]),
    ...(finished?["この経営記録はいったん終了です。新しく始める前に記録を書き出せます。"]:[])
   ]};
- const next={...s,day:s.day+1,cash,reputation,
+ const next={...s,day:s.day+1,cash,reputation,trainingLevel:skill,
   totalDelivered:s.totalDelivered+delivered,totalEscaped:s.totalEscaped+escaped,finished,
-  history:s.history.concat([{day:s.day,profit,cash,delivered,escaped,reputation}])};
+  history:s.history.concat([{day:s.day,profit,cash,delivered,escaped,reputation,trained:p.train}])};
  return {state:validate(next),report};
 }
 return Object.freeze({VERSION,MAX_DAYS,PRODUCTS,INSPECTION_LEVELS,POLICY,initial,validate,hash,currentOrder,validatePlan,estimate,advance});
