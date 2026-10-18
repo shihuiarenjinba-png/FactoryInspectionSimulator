@@ -2,7 +2,7 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm"),path=require("node:path");
 const engine=require("../src/engine.js");
 const source=fs.readFileSync(path.join(__dirname,"../src/app.js"),"utf8");
-const ids=["day","cash","reputation","shipments","milestone","comparison","order","outcome","history","preview",
+const ids=["day","cash","reputation","shipments","milestone","comparison","lineVizContent","order","outcome","history","preview",
 "inspectPercent","workers","repair","overtime","calibrate","run","export","import","reset","savefile"];
 function harness(initialRaw,confirmResult=true){
  const elements={},handlers={},saved=new Map();
@@ -18,6 +18,7 @@ function harness(initialRaw,confirmResult=true){
   append(...children){this.children.push(...children);}
   prepend(...children){this.children.unshift(...children);}
   replaceChildren(...children){this.children=children;this._text="";}
+  setAttribute(key,value){this[key]=value;}
   addEventListener(type,callback){this.handlers[type]=callback;}
   scrollIntoView(){}
   remove(){}
