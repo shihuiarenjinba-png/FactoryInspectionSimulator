@@ -140,7 +140,16 @@ function submit(){
  try{
   const next=E.advance(state,plan());state=next.state;report=next.report;
   notice=next.report.escaped||next.report.lateness?"品質・納期の結果を確認して、次の改善を考えましょう。":"納期と品質を両立できました。利益の改善も考えましょう。";
-  persist();redraw();$("outcome").scrollIntoView({behavior:"smooth",block:"nearest"});
+  persist();redraw();
+  const stage=document.querySelector('.context-scene[data-scene-key="run"]');
+  if(stage&&report){
+    stage.dataset.outcome=report.lateness>0?"late":report.escaped>0?"quality-risk":"completed";
+    const caption=stage.querySelector(".context-description p");
+    if(caption)caption.textContent="実績：出荷 "+report.shipped+"個、検査 "+report.inspected+
+      "個、見逃し "+report.escaped+"個、遅延 "+report.lateness+"分。計算済みの出荷結果です。";
+  }
+  globalThis.OperationTabs?.open("run");
+  $("outcome").scrollIntoView({behavior:"smooth",block:"nearest"});
  }catch(err){notice=err.message;preflight();$("preview").prepend(create("p",notice,"error-text"));}
 }
 function download(name,text){
