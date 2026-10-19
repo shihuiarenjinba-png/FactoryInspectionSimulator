@@ -1,20 +1,32 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const app=fs.readFileSync("src/app.js","utf8"),tabs=fs.readFileSync("src/operation-tabs.js","utf8");
-test("actual completed inspection and dispatch opens visible results before scrolling",()=>{
+test("shipping finishes calculations, then reveals the correct report tab",()=>{
  const i=app.indexOf("function submit(){"),j=app.indexOf("function download(",i);
  assert.ok(i>=0&&j>i);
  const body=app.slice(i,j);
  assert.match(body,/E\.advance\(state,plan\(\)\)/);
- assert.match(body,/stage\.dataset\.outcome=report\.lateness>0\?"late":report\.escaped>0\?"quality-risk":"completed"/);
- assert.match(body,/report\.shipped/);assert.match(body,/report\.inspected/);
- assert.match(body,/report\.escaped/);assert.match(body,/report\.lateness/);
+ assert.match(body,/report=next\.report/);
+ assert.match(body,/syncResultScene\(\)/);
  assert.ok(body.indexOf('OperationTabs?.open("run")')<body.indexOf('$("outcome").scrollIntoView('));
  assert.doesNotMatch(body,/if\(report\)\s*E\.advance\(/);
  assert.doesNotThrow(()=>new vm.Script(app));
  assert.match(tabs,/panels":\[2,3\]/);
 });
-test("dispatch view does not redraw speculative results as a real shipment",()=>{
- assert.match(app,/if\(!report\)\{/);
- assert.match(app,/検査方針を決めて/);
+test("context picture never displays stale dispatch stats after new game or import",()=>{
+ const a=app.indexOf("function syncResultScene(){"),b=app.indexOf("function redraw(){",a);
+ assert.ok(a>0&&b>a);
+ const caption={textContent:""},stage={dataset:{},querySelector:()=>caption};
+ const document={querySelector:()=>stage};
+ const fn=new Function("document","getReport",app.slice(a,b).replace(
+   "function syncResultScene(){","function syncResultScene(){const report=getReport();")+"return syncResultScene;");
+ let report={shipped:120,inspected:80,escaped:3,lateness:4};
+ const sync=fn(document,()=>report);
+ sync();assert.equal(stage.dataset.outcome,"late");
+ assert.match(caption.textContent,/出荷 120個/);
+ report=null;sync();
+ assert.equal(stage.dataset.outcome,"pending");
+ assert.doesNotMatch(caption.textContent,/出荷 120個/);
+ assert.match(caption.textContent,/出荷前です/);
+ assert.match(app,/function redraw\(\)\{[^}]*syncResultScene\(\)/);
 });
