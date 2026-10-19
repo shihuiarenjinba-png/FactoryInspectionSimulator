@@ -122,7 +122,7 @@ test("factory resets preserve earlier distinct saves and expose their backups",(
  h.click("reset");
  assert.equal(h.saved.get(back),first);
  assert.equal(JSON.parse(h.saved.get(key)).day,1);
- h.click("run");const second=h.saved.get(key);
+ h.click("policyQuality");h.click("run");const second=h.saved.get(key);
  h.click("reset");
  assert.equal(h.saved.get(back),first);
  assert.equal(h.saved.get(back+":2"),second);
