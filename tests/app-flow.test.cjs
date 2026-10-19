@@ -29,6 +29,7 @@ function harness(initialRaw,confirmResult=true){
  const document={
   body:{append(){}},
   getElementById(id){return elements[id]},
+  querySelector(){return null},
   createElement(tag){return new Node(tag)},
   addEventListener(type,callback){handlers[type]=callback}
  };
