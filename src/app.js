@@ -33,11 +33,14 @@ function backupKeys(){
  return keys;
 }
 function backupMenu(){
- const select=$("backupSlot"),current=select.value,keys=backupKeys();
- select.replaceChildren();
- keys.forEach((key,i)=>{const option=create("option","バックアップ "+(i+1));option.value=key;select.append(option);});
- select.value=keys.includes(current)?current:(keys.at(-1)||"");
- $("exportBackup").disabled=keys.length===0;
+ const select=$("backupSlot"),current=select.value;
+ try{
+  const keys=backupKeys();
+  select.replaceChildren();
+  keys.forEach((key,i)=>{const option=create("option","バックアップ "+(i+1));option.value=key;select.append(option);});
+  select.value=keys.includes(current)?current:(keys.at(-1)||"");
+  $("exportBackup").disabled=keys.length===0;
+ }catch(error){select.replaceChildren();$("exportBackup").disabled=true;}
 }
 function writeNext(next){
  try{localStorage.setItem(KEY,JSON.stringify(next));return true;}
