@@ -134,20 +134,27 @@ function preflight(){
   $("run").disabled=false;
  }catch(err){lineView(null,err.message);root.classList.add("error");root.append(create("p",err.message));$("run").disabled=true;}
 }
-function redraw(){overview();milestoneView();orderView();outcomeView();historyView();preflight();comparisonView();}
+function syncResultScene(){
+ const stage=document.querySelector('.context-scene[data-scene-key="run"]');
+ if(!stage)return;
+ const caption=stage.querySelector(".context-description p");
+ if(!report){
+  stage.dataset.outcome="pending";
+  if(caption)caption.textContent="出荷前です。注文・検査方針を決めてから実行してください。";
+  return;
+ }
+ stage.dataset.outcome=report.lateness>0?"late":report.escaped>0?"quality-risk":"completed";
+ if(caption)caption.textContent="実績：出荷 "+report.shipped+"個、検査 "+report.inspected+
+  "個、見逃し "+report.escaped+"個、遅延 "+report.lateness+"分。計算済みの出荷結果です。";
+}
+function redraw(){overview();milestoneView();orderView();outcomeView();historyView();preflight();comparisonView();syncResultScene();}
 function submit(){
  if(recoveryBlocked||state.finished)return;
  try{
   const next=E.advance(state,plan());state=next.state;report=next.report;
   notice=next.report.escaped||next.report.lateness?"品質・納期の結果を確認して、次の改善を考えましょう。":"納期と品質を両立できました。利益の改善も考えましょう。";
   persist();redraw();
-  const stage=document.querySelector('.context-scene[data-scene-key="run"]');
-  if(stage&&report){
-    stage.dataset.outcome=report.lateness>0?"late":report.escaped>0?"quality-risk":"completed";
-    const caption=stage.querySelector(".context-description p");
-    if(caption)caption.textContent="実績：出荷 "+report.shipped+"個、検査 "+report.inspected+
-      "個、見逃し "+report.escaped+"個、遅延 "+report.lateness+"分。計算済みの出荷結果です。";
-  }
+  syncResultScene();
   globalThis.OperationTabs?.open("run");
   $("outcome").scrollIntoView({behavior:"smooth",block:"nearest"});
  }catch(err){notice=err.message;preflight();$("preview").prepend(create("p",notice,"error-text"));}
