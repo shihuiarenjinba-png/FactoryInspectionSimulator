@@ -1,6 +1,6 @@
 /* Factory Inspection Simulator — simple player UI, no external resources. */
 (function(){"use strict";
-const E=globalThis.FactoryInspection,$=id=>document.getElementById(id),KEY="factory-inspection:save:v1";
+const E=globalThis.FactoryInspection,$=id=>document.getElementById(id),KEY="factory-inspection:save:v1",BACKUP=KEY+":backup";
 let state=null,report=null,recoveryBlocked=false,unreadableRaw=null,notice="";
 const yen=x=>Math.round(x).toLocaleString("ja-JP")+"円";
 const create=(tag,txt,cls)=>{const n=document.createElement(tag);if(txt!==undefined)n.textContent=txt;if(cls)n.className=cls;return n;};
@@ -13,6 +13,38 @@ function persist(){
  if(recoveryBlocked)return false;
  try{localStorage.setItem(KEY,JSON.stringify(state));return true;}
  catch(err){notice="自動保存に失敗しました。記録の書き出しをお試しください。";return false;}
+}
+function preserveBackup(raw){
+ if(raw===null)return;
+ for(let i=1;i<=100;i++){
+  const key=i===1?BACKUP:BACKUP+":"+i,previous=localStorage.getItem(key);
+  if(previous===raw)return;
+  if(previous===null){localStorage.setItem(key,raw);return;}
+ }
+ throw Error("バックアップ枠が上限です。セーブを書き出してから作業してください。");
+}
+function backupKeys(){
+ const keys=[];
+ for(let i=1;i<=100;i++){
+  const key=i===1?BACKUP:BACKUP+":"+i;
+  if(localStorage.getItem(key)===null)break;
+  keys.push(key);
+ }
+ return keys;
+}
+function backupMenu(){
+ const select=$("backupSlot"),current=select.value;
+ try{
+  const keys=backupKeys();
+  select.replaceChildren();
+  keys.forEach((key,i)=>{const option=create("option","バックアップ "+(i+1));option.value=key;select.append(option);});
+  select.value=keys.includes(current)?current:(keys.at(-1)||"");
+  $("exportBackup").disabled=keys.length===0;
+ }catch(error){select.replaceChildren();$("exportBackup").disabled=true;}
+}
+function writeNext(next){
+ try{localStorage.setItem(KEY,JSON.stringify(next));return true;}
+ catch(error){notice="保存に失敗したため、この操作は確定しませんでした。";return false;}
 }
 function plan(){return {inspectPercent:Number($("inspectPercent").value),workers:Number($("workers").value),
  repair:$("repair").checked,overtime:$("overtime").checked,calibrate:$("calibrate").checked};}
@@ -147,13 +179,14 @@ function syncResultScene(){
  if(caption)caption.textContent="実績：出荷 "+report.shipped+"個、検査 "+report.inspected+
   "個、見逃し "+report.escaped+"個、遅延 "+report.lateness+"分。計算済みの出荷結果です。";
 }
-function redraw(){overview();milestoneView();orderView();outcomeView();historyView();preflight();comparisonView();syncResultScene();}
+function redraw(){overview();milestoneView();orderView();outcomeView();historyView();preflight();comparisonView();syncResultScene();backupMenu();}
 function submit(){
  if(recoveryBlocked||state.finished)return;
  try{
-  const next=E.advance(state,plan());state=next.state;report=next.report;
+  const next=E.advance(state,plan());if(!writeNext(next.state)){redraw();return;}
+  state=next.state;report=next.report;
   notice=next.report.escaped||next.report.lateness?"品質・納期の結果を確認して、次の改善を考えましょう。":"納期と品質を両立できました。利益の改善も考えましょう。";
-  persist();redraw();
+  redraw();
   syncResultScene();
   globalThis.OperationTabs?.open("run");
   $("outcome").scrollIntoView({behavior:"smooth",block:"nearest"});
@@ -163,6 +196,16 @@ function download(name,text){
  const url=URL.createObjectURL(new Blob([text],{type:"application/json"})),a=create("a");
  a.href=url;a.download=name;document.body.append(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportBackup(){
+ const key=$("backupSlot").value,raw=key?localStorage.getItem(key):null;
+ if(raw===null){alert("バックアップがありません。");return;}
+ try{
+  const saved=E.validate(JSON.parse(raw));
+  download("factory-inspection-backup.json",JSON.stringify({schema:E.VERSION,state:saved},null,2));
+ }catch(error){
+  download("factory-inspection-backup-unreadable.txt",raw);
+ }
 }
 function exportSave(){
  if(recoveryBlocked&&unreadableRaw===null){alert("この端末から元の保存データを取得できません。");return;}
@@ -177,8 +220,10 @@ async function importSave(file){
   if(data.schema!==E.VERSION)throw Error("対応していないセーブ形式です。");
   const incoming=E.validate(data.state);
   if(!confirm("現在の進行状況を読み込んだセーブで置き換えますか？"))return;
+  preserveBackup(localStorage.getItem(KEY));
+  if(!writeNext(incoming))throw Error("保存領域への書き込みに失敗しました。");
   state=incoming;report=null;recoveryBlocked=false;unreadableRaw=null;notice="記録を読み込みました。";
-  persist();redraw();
+  redraw();
  }catch(err){alert("セーブ読込に失敗しました："+err.message);}
 }
 function init(){
@@ -193,6 +238,7 @@ function init(){
  for(const id of ["inspectPercent","workers","repair","overtime","calibrate"])$(id).addEventListener("change",()=>{preflight();comparisonView();});
  $("run").addEventListener("click",submit);
  $("export").addEventListener("click",exportSave);
+ $("exportBackup").addEventListener("click",exportBackup);
  $("import").addEventListener("click",()=>$("savefile").click());
  $("savefile").addEventListener("change",event=>{const f=event.target.files[0];event.target.value="";void importSave(f);});
  $("reset").addEventListener("click",()=>{
@@ -200,8 +246,13 @@ function init(){
    "元のセーブを上書きして新規開始します。先に元データを書き出しましたか？":
    "現在の進行を上書きして初日から始めます。よろしいですか？";
   if(!confirm(warning))return;
-  state=E.initial();report=null;recoveryBlocked=false;unreadableRaw=null;notice="新しく始めました。";
-  persist();redraw();
+  try{
+   preserveBackup(localStorage.getItem(KEY));
+   const next=E.initial();
+   if(!writeNext(next))throw Error("新規セーブを保存できませんでした。");
+   state=next;report=null;recoveryBlocked=false;unreadableRaw=null;notice="新しく始めました。";
+   redraw();
+  }catch(error){notice="元のセーブを保護しました。"+error.message;redraw();}
  });
 }
 document.addEventListener("DOMContentLoaded",init);

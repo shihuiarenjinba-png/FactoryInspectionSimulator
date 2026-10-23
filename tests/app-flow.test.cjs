@@ -3,7 +3,7 @@ const test=require("node:test"),assert=require("node:assert/strict"),fs=require(
 const engine=require("../src/engine.js");
 const source=fs.readFileSync(path.join(__dirname,"../src/app.js"),"utf8");
 const ids=["day","cash","reputation","shipments","milestone","comparison","lineVizContent","order","outcome","history","preview",
-"policyBudget","policyStandard","policyQuality","inspectPercent","workers","repair","overtime","calibrate","run","export","import","reset","savefile"];
+"policyBudget","policyStandard","policyQuality","inspectPercent","workers","repair","overtime","calibrate","run","export","import","reset","savefile","backupSlot","exportBackup"];
 function harness(initialRaw,confirmResult=true){
  const elements={},handlers={},saved=new Map();
  if(initialRaw!==undefined)saved.set("factory-inspection:save:v1",initialRaw);
@@ -29,6 +29,7 @@ function harness(initialRaw,confirmResult=true){
  const document={
   body:{append(){}},
   getElementById(id){return elements[id]},
+  querySelector(){return null},
   createElement(tag){return new Node(tag)},
   addEventListener(type,callback){handlers[type]=callback}
  };
@@ -113,4 +114,22 @@ test("preset buttons update inputs and estimates without touching saved finances
  assert.match(h.elements.preview.textContent,/検査予定/);assert.equal(h.saved.get(key),before);
  h.click("policyBudget");assert.equal(h.elements.inspectPercent.value,"25");assert.equal(h.elements.workers.value,"1");
  assert.equal(h.saved.get(key),before);
+});
+
+test("factory resets preserve earlier distinct saves and expose their backups",()=>{
+ const h=harness(),key="factory-inspection:save:v1",back=key+":backup";
+ h.click("run");const first=h.saved.get(key);
+ h.click("reset");
+ assert.equal(h.saved.get(back),first);
+ assert.equal(JSON.parse(h.saved.get(key)).day,1);
+ h.click("policyQuality");h.click("run");const second=h.saved.get(key);
+ h.click("reset");
+ assert.equal(h.saved.get(back),first);
+ assert.equal(h.saved.get(back+":2"),second);
+ assert.equal(h.elements.backupSlot.children.length,2);
+ h.elements.backupSlot.value=back;
+ h.click("exportBackup");
+ const restored=JSON.parse(h.lastDownload());
+ assert.equal(restored.schema,engine.VERSION);
+ assert.equal(JSON.stringify(restored.state),first);
 });
