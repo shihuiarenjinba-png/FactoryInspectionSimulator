@@ -30,6 +30,15 @@ test("only one real operation screen remains visible and all input controls keep
  }
  assert.equal(buttons.filter(b=>b.dataset.operationTab).length,names.length);
  assert.equal(buttons.filter(b=>b.dataset.operationTab&&b.attrs["aria-selected"]==="true").length,1);
+ for(const btn of buttons.filter(b=>b.dataset.operationTab)){
+  assert.ok(btn.attrs["aria-controls"],"each tab needs a real controlled panel");
+  assert.ok(btn.id?.startsWith("factory-tab-"));
+ }
+ for(const panel of [...panels,details]){
+  assert.equal(panel.attrs.role,"tabpanel");
+  assert.ok(panel.attrs["aria-labelledby"]?.startsWith("factory-tab-"));
+ }
+
  assert.equal(win.OperationTabs.open("not-real"),false);
 });
 test("tabs use intact game buttons, do not alter saved simulation and script exists in HTML",()=>{
