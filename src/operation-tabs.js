@@ -14,13 +14,20 @@
   const controls=[];
   for(const page of layout){
    const button=document.createElement("button");button.type="button";
-   button.dataset.operationTab=page.id;button.setAttribute("role","tab");
+   button.dataset.operationTab=page.id;button.id="factory-tab-"+page.id;button.setAttribute("role","tab");
    button.textContent=page.label;button.tabIndex=-1;
    nav.append(button);controls.push(button);
    screenByName[page.id]=page.panels? page.panels.map(i=>panels[i]) :
      [main.querySelector("details"+page.details)];
    if(screenByName[page.id].some(x=>!x))throw Error("Missing game screen "+page.id);
-   for(const element of screenByName[page.id])element.dataset.operationScreen=page.id;
+   for(let i=0;i<screenByName[page.id].length;i++){
+    const element=screenByName[page.id][i];
+    element.dataset.operationScreen=page.id;
+    if(!element.id)element.id="factory-panel-"+page.id+"-"+i;
+    element.setAttribute("role","tabpanel");
+    element.setAttribute("aria-labelledby",button.id);
+   }
+   button.setAttribute("aria-controls",screenByName[page.id].map(element=>element.id).join(" "));
   }
   panels[0].parentNode.insertBefore(nav,panels[0]);
   const nextActions={"orders":["quality","次へ：検査方針と人員を決める →"],"quality":["run","次へ：費用・時間を確認して出荷する →"],"run":["orders","次の注文を確認する →"]};
@@ -51,10 +58,10 @@
   }
   nav.addEventListener("click",event=>{const b=event.target.closest("[data-operation-tab]");if(b)open(b.dataset.operationTab);});
   nav.addEventListener("keydown",event=>{
-   if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key))return;
+   if(!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End"].includes(event.key))return;
    event.preventDefault();let index=layout.findIndex(x=>x.id===selected);
    if(event.key==="Home")index=0;else if(event.key==="End")index=layout.length-1;
-   else index=(index+(event.key==="ArrowLeft"?-1:1)+layout.length)%layout.length;
+   else index=(index+(event.key==="ArrowLeft"||event.key==="ArrowUp"?-1:1)+layout.length)%layout.length;
    open(layout[index].id,{focus:true});
   });
   
