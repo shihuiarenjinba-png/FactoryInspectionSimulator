@@ -51,6 +51,26 @@ const output=path.resolve("unified-ui-evidence");fs.mkdirSync(output,{recursive:
   }
   observed.clickedTab=count>=2;
   observed.checkedAllTabs=verifiedTabs===count;
+
+  // Paid-game P0 check: run an actual inspection day, not just click the tabs.
+  const initialState=await p.evaluate(()=>JSON.parse(localStorage.getItem("factory-inspection:save:v1")));
+  assert.ok(initialState && Number.isInteger(initialState.day),"missing initial factory save");
+  await p.locator('[data-operation-tab="quality"]').click();
+  await p.locator("#policyQuality").click();
+  assert.equal(await p.locator("#inspectPercent").inputValue(),"100");
+  assert.equal(await p.locator("#workers").inputValue(),"4");
+  await p.locator('[data-operation-tab="run"]').click();
+  assert.equal(await p.locator("#run").isEnabled(),true,"initial order is not playable");
+  await p.locator("#run").click();
+  const advanced=await p.evaluate(()=>JSON.parse(localStorage.getItem("factory-inspection:save:v1")));
+  assert.equal(advanced.day,initialState.day+1,"an inspected order must advance the game");
+  assert.equal(advanced.history.length,initialState.history.length+1,"completed order must enter the ledger");
+  assert.match(await p.locator("#outcome").innerText(),/本日の利益/,"result panel must show actual accounting");
+  assert.match(await p.locator("#history").innerText(),/1日目/,"ledger must show the completed day");
+  await p.reload({waitUntil:"load"});
+  const reloaded=await p.evaluate(()=>JSON.parse(localStorage.getItem("factory-inspection:save:v1")));
+  assert.deepEqual(reloaded,advanced,"factory state must persist after page reload");
+  assert.equal(await p.locator("#day").innerText(),String(reloaded.day)+"日目");
   const mobile=await browser.newContext({viewport:{width:1024,height:768}}),q=await mobile.newPage();
   listen(q);await q.goto(url.pathToFileURL(path.resolve("index.html")).href,{waitUntil:"load"});
   const metrics=await q.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth}));
