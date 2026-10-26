@@ -4,7 +4,7 @@ const engine=require("../src/engine.js");
 const source=fs.readFileSync(path.join(__dirname,"../src/app.js"),"utf8");
 const ids=["day","cash","reputation","shipments","milestone","comparison","lineVizContent","order","outcome","history","preview",
 "policyBudget","policyStandard","policyQuality","inspectPercent","workers","repair","overtime","calibrate","run","export","import","reset","savefile"];
-function harness(initialRaw,confirmResult=true){
+function harness(initialRaw,confirmResult=true,readOnly=false){
  const elements={},handlers={},saved=new Map();
  if(initialRaw!==undefined)saved.set("factory-inspection:save:v1",initialRaw);
  class Node{
@@ -38,7 +38,7 @@ function harness(initialRaw,confirmResult=true){
  let lastDownload=null;
  class FakeBlob{constructor(parts,opts){this.parts=parts;this.opts=opts;}}
  const URL={createObjectURL(blob){lastDownload=blob.parts.join("");return "blob:local";},revokeObjectURL(){}};
- const localStorage={getItem:key=>saved.get(key)??null,setItem:(key,value)=>saved.set(key,value)};
+ const localStorage={getItem:key=>saved.get(key)??null,setItem:(key,value)=>{if(readOnly)throw Error("test: localStorage quota");saved.set(key,value);}};
  const context=vm.createContext({FactoryInspection:engine,document,localStorage,URL,Blob:FakeBlob,console,
   confirm:()=>confirmResult,alert:()=>{},setTimeout:()=>{}});
  vm.runInContext(source,context,{filename:"src/app.js"});
@@ -116,4 +116,18 @@ test("preset buttons update inputs and estimates without touching saved finances
  assert.match(h.elements.preview.textContent,/検査予定/);assert.equal(h.saved.get(key),before);
  h.click("policyBudget");assert.equal(h.elements.inspectPercent.value,"25");assert.equal(h.elements.workers.value,"1");
  assert.equal(h.saved.get(key),before);
+});
+test("read-only storage never advances the factory day or mutates its ledger",()=>{
+ const initial=engine.initial(62),raw=JSON.stringify(initial),h=harness(raw,true,true);
+ h.click("run");
+ assert.equal(h.saved.get("factory-inspection:save:v1"),raw);
+ assert.equal(h.elements.day.textContent,"1日目");
+ assert.match(h.elements.preview.textContent,/保存|test: localStorage quota/);
+});
+test("read-only storage cannot erase the existing factory game on reset",()=>{
+ const initial=engine.advance(engine.initial(71),{inspectPercent:50,workers:2,repair:true,overtime:false,calibrate:false}).state;
+ const raw=JSON.stringify(initial),h=harness(raw,true,true);
+ h.click("reset");
+ assert.equal(h.saved.get("factory-inspection:save:v1"),raw);
+ assert.equal(h.elements.day.textContent,"2日目");
 });
