@@ -151,9 +151,12 @@ function redraw(){overview();milestoneView();orderView();outcomeView();historyVi
 function submit(){
  if(recoveryBlocked||state.finished)return;
  try{
-  const next=E.advance(state,plan());state=next.state;report=next.report;
+  const next=E.advance(state,plan());
+  // A production day must not advance unless its report and ledger are saved.
+  localStorage.setItem(KEY,JSON.stringify(next.state));
+  state=next.state;report=next.report;
   notice=next.report.escaped||next.report.lateness?"品質・納期の結果を確認して、次の改善を考えましょう。":"納期と品質を両立できました。利益の改善も考えましょう。";
-  persist();redraw();
+  redraw();
   syncResultScene();
   globalThis.OperationTabs?.open("run");
   $("outcome").scrollIntoView({behavior:"smooth",block:"nearest"});
@@ -177,8 +180,9 @@ async function importSave(file){
   if(data.schema!==E.VERSION)throw Error("対応していないセーブ形式です。");
   const incoming=E.validate(data.state);
   if(!confirm("現在の進行状況を読み込んだセーブで置き換えますか？"))return;
+  localStorage.setItem(KEY,JSON.stringify(incoming));
   state=incoming;report=null;recoveryBlocked=false;unreadableRaw=null;notice="記録を読み込みました。";
-  persist();redraw();
+  redraw();
  }catch(err){alert("セーブ読込に失敗しました："+err.message);}
 }
 function init(){
@@ -200,8 +204,12 @@ function init(){
    "元のセーブを上書きして新規開始します。先に元データを書き出しましたか？":
    "現在の進行を上書きして初日から始めます。よろしいですか？";
   if(!confirm(warning))return;
-  state=E.initial();report=null;recoveryBlocked=false;unreadableRaw=null;notice="新しく始めました。";
-  persist();redraw();
+  try{
+   const next=E.initial();
+   localStorage.setItem(KEY,JSON.stringify(next));
+   state=next;report=null;recoveryBlocked=false;unreadableRaw=null;notice="新しく始めました。";
+   redraw();
+  }catch(error){notice="保存できないため、現在の工場データは変更しませんでした。";redraw();}
  });
 }
 document.addEventListener("DOMContentLoaded",init);
