@@ -29,6 +29,9 @@ function harness(initialRaw,confirmResult=true){
  const document={
   body:{append(){}},
   getElementById(id){return elements[id]},
+  // Context decoration is optional; real DOM exposes querySelector, so the
+  // minimal VM fixture must expose it too.
+  querySelector(){return null;},
   createElement(tag){return new Node(tag)},
   addEventListener(type,callback){handlers[type]=callback}
  };
