@@ -36,6 +36,16 @@ function outcomeView(){
  const accounting=create("p", "検査・人件費・修理・補償・遅延を含む総費用："+yen(report.expenses)+"。期末資金："+yen(report.cash)+"。","muted");
  root.append(accounting);
  for(const n of report.notes)root.append(create("p",n,"feedback"));
+ const advice=report.escaped>0&&report.lateness>0?
+  "次の改善：見逃しと納期超過の両方が発生しました。検査率だけを増やさず、人員・修理方針・予想時間を合わせて比較しましょう。":
+  report.escaped>0?
+  "次の改善：見逃し不良が発生しました。検査率を上げるか、修理方針と事前の資金を見直しましょう。":
+  report.lateness>0?
+  "次の改善：納期を超過しました。比較表で検査率・人員・予想作業時間を見比べましょう。":
+  report.profit<0?
+  "次の改善：品質と納期を守れても赤字です。検査費・人件費と売上を比較し、過剰な費用がないか見直しましょう。":
+  "次の改善：品質と納期を守れました。次は固定費を抑えつつ、継続して信用を積み重ねられるか試しましょう。";
+ root.append(create("p",advice,"feedback"));
  if(report.escaped===0&&report.lateness===0)root.append(create("p","不良品の見逃しを抑え、納期内に出荷できました。次は利益とのバランスを考えましょう。","positive"));
 }
 function historyView(){
